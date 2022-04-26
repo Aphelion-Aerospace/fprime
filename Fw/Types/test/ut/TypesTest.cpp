@@ -7,7 +7,6 @@
 #include <Fw/Types/InternalInterfaceString.hpp>
 #include <Fw/Types/PolyType.hpp>
 #include <Fw/Types/MallocAllocator.hpp>
-#include <Fw/Types/AlignedAllocator.hpp>
 //
 // Created by mstarch on 12/7/20.
 //
@@ -902,8 +901,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<U8>(pt), in8);
     ASSERT_EQ(out8, in8);
 
+#if FW_SERIALIZABLE_TO_STRING
     pt.toString(str);
     ASSERT_STREQ(str.toChar(), "218 ");
+#endif
 
     // U16 Type  ==============================================================
     U16 inU16 = 34;
@@ -918,8 +919,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<U16>(ptU16), inU16);
     ASSERT_EQ(outU16, inU16);
 
+#if FW_SERIALIZABLE_TO_STRING
     ptU16.toString(str);
     ASSERT_STREQ(str.toChar(), "45000 ");
+#endif
 
     // U32 Type  ==============================================================
     U32 inU32 = 89;
@@ -934,8 +937,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<U32>(ptU32), inU32);
     ASSERT_EQ(outU32, inU32);
 
+#if FW_SERIALIZABLE_TO_STRING
     ptU32.toString(str);
     ASSERT_STREQ(str.toChar(), "3222111000 ");
+#endif
 
     // U64 Type  ==============================================================
     U64 inU64 = 233;
@@ -950,8 +955,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<U64>(ptU64), inU64);
     ASSERT_EQ(outU64, inU64);
 
+#if FW_SERIALIZABLE_TO_STRING
     ptU64.toString(str);
     ASSERT_STREQ(str.toChar(), "555444333222111 ");
+#endif
 
     // I8 Type  ===============================================================
     I8 inI8 = 2;
@@ -966,8 +973,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<I8>(ptI8), inI8);
     ASSERT_EQ(outI8, inI8);
 
+#if FW_SERIALIZABLE_TO_STRING
     ptI8.toString(str);
     ASSERT_STREQ(str.toChar(), "-3 ");
+#endif
 
     // I16 Type  ==============================================================
     I16 inI16 = 5;
@@ -982,8 +991,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<I16>(ptI16), inI16);
     ASSERT_EQ(outI16, inI16);
 
+#if FW_SERIALIZABLE_TO_STRING
     ptI16.toString(str);
     ASSERT_STREQ(str.toChar(), "-7 ");
+#endif
 
     // I32 Type  ==============================================================
     I32 inI32 = 11;
@@ -998,8 +1009,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<I32>(ptI32), inI32);
     ASSERT_EQ(outI32, inI32);
 
+#if FW_SERIALIZABLE_TO_STRING
     ptI32.toString(str);
     ASSERT_STREQ(str.toChar(), "-13 ");
+#endif
 
     // I64 Type  ==============================================================
     I64 inI64 = 17;
@@ -1014,8 +1027,10 @@ TEST(TypesTest,PolyTest) {
     ASSERT_EQ(static_cast<I64>(ptI64), inI64);
     ASSERT_EQ(outI64, inI64);
 
+#if FW_SERIALIZABLE_TO_STRING
     ptI64.toString(str);
     ASSERT_STREQ(str.toChar(), "-19 ");
+#endif
 
     // F32 Type  ==============================================================
     F32 inF32 = 23.32;
@@ -1163,53 +1178,6 @@ TEST(AllocatorTest,MallocAllocatorTest) {
     allocator.deallocate(100,ptr);
 }
 
-TEST(AllocatorTest,AlignedAllocatorTest) {
-
-    // spot check some alignments, but it really depends on the underlying C library
-    // Note that these may be false positives depending on the underlying heap scheme
-
-    // Test alignment 2 
-    Fw::AlignedAllocator allocator_2(2*sizeof(void*));
-    NATIVE_UINT_TYPE size = 4*sizeof(void*); // one hundred bytes
-    bool recoverable;
-    void *ptr = allocator_2.allocate(10,size,recoverable);
-    ASSERT_EQ(4*sizeof(void*),size);
-    ASSERT_NE(ptr,nullptr);
-    ASSERT_FALSE(recoverable);
-    // verify alignment
-    POINTER_CAST ptrVal = reinterpret_cast<POINTER_CAST>(ptr);
-    ASSERT_EQ(ptrVal,ptrVal&~0x1);
-    // deallocate memory
-    allocator_2.deallocate(10,ptr);
-
-    // Test alignment 4 
-    Fw::AlignedAllocator allocator_4(4*sizeof(void*));
-    size = 8*sizeof(void*); // one hundred bytes
-    ptr = allocator_4.allocate(10,size,recoverable);
-    ASSERT_EQ(8*sizeof(void*),size);
-    ASSERT_NE(ptr,nullptr);
-    ASSERT_FALSE(recoverable);
-    // verify alignment
-    ptrVal = reinterpret_cast<POINTER_CAST>(ptr);
-    ASSERT_EQ(ptrVal,ptrVal&~0x3);
-    // deallocate memory
-    allocator_4.deallocate(10,ptr);
-
-    // Test alignment 32 
-    Fw::AlignedAllocator allocator_32(32*sizeof(void*));
-    size = 64*sizeof(void*); // one hundred bytes
-    ptr = allocator_32.allocate(10,size,recoverable);
-    ASSERT_EQ(64*sizeof(void*),size);
-    ASSERT_NE(ptr,nullptr);
-    ASSERT_FALSE(recoverable);
-    // verify alignment
-    ptrVal = reinterpret_cast<POINTER_CAST>(ptr);
-    ASSERT_EQ(ptrVal,ptrVal&~0x1F);
-    // deallocate memory
-    allocator_32.deallocate(10,ptr);
-
-}
-
 TEST(Nominal, string_copy) {
     const char* copy_string = "abc123\n";  // Length of 7
     char buffer_out_test[10];
@@ -1258,6 +1226,17 @@ TEST(OffNominal, string_copy) {
     }
     ASSERT_EQ(out_truth[i], '\n') << "strncpy did not error as expected";
     ASSERT_EQ(out_test[i], 0) << "string_copy didn't properly null terminate";
+}
+
+TEST(Nominal, string_len) {
+    const char* test_string = "abc123";
+    ASSERT_EQ(Fw::StringUtils::string_length(test_string, 50), 6);
+    ASSERT_EQ(Fw::StringUtils::string_length(test_string, 3), 3);
+}
+
+TEST(OffNominal, string_len_zero) {
+  const char* test_string = "abc123";
+  ASSERT_EQ(Fw::StringUtils::string_length(test_string, 0), 0);
 }
 
 int main(int argc, char **argv) {

@@ -82,7 +82,7 @@ namespace Svc {
 
     // Pick a rule and downlink
     void SendAvailableRule :: action(Svc::Tester &state) {
-        const U32 incoming_buffer_size = (state.m_polling) ? sizeof(state.component.m_poll_buffer) : STest::Pick::lowerUpper(1, 10240);
+        const U32 incoming_buffer_size = (state.m_polling) ? sizeof(state.component.m_pollBuffer) : STest::Pick::lowerUpper(1, 10240);
         U8* incoming_buffer = new U8[incoming_buffer_size];
         state.m_incoming_buffer.set(incoming_buffer, incoming_buffer_size);
         state.m_incoming_buffer.getSerializeRepr().resetSer();
@@ -122,7 +122,7 @@ namespace Svc {
         }
 
         // If corruption hits a size byte to a valid size, it must wait until more data.  This will flush the buffer.
-        const U32 flush_buffer_size = (state.m_polling) ? sizeof(state.component.m_poll_buffer) : state.component.m_in_ring.get_capacity();
+        const U32 flush_buffer_size = (state.m_polling) ? sizeof(state.component.m_pollBuffer) : state.component.m_inRing.get_capacity();
         U8* flush_buffer = new U8[flush_buffer_size];
         state.m_incoming_buffer.set(flush_buffer, incoming_buffer_size);
         state.m_incoming_buffer.getSerializeRepr().resetSer();
@@ -134,11 +134,13 @@ namespace Svc {
         }
         state.m_incoming_buffer.setSize(flush_buffer_size);
         // Flush it
+        state.m_in_flush = true;
         if (!state.m_polling) {
             state.invoke_to_framedIn(0, state.m_incoming_buffer, Drv::RecvStatus::RECV_OK);
         } else {
             state.invoke_to_schedIn(0, 0);
         }
+        state.m_in_flush = false;
 
         state.assert_from_comOut_size(__FILE__, __LINE__, expected_com_count);
         state.assert_from_bufferOut_size(__FILE__, __LINE__, expected_buf_count);
